@@ -889,6 +889,9 @@ void nf_conntrack_free(struct nf_conn *ct)
 {
 	struct net *net = nf_ct_net(ct);
 
+	/* nos node release */
+	nos_track_free(&ct->nos_track);
+
 	/* A freed object has refcnt == 0, that's
 	 * the golden rule for SLAB_DESTROY_BY_RCU
 	 */
@@ -922,6 +925,7 @@ init_conntrack(struct net *net, struct nf_conn *tmpl,
 	struct nf_conn_timeout *timeout_ext;
 	struct nf_conntrack_zone tmp;
 	unsigned int *timeouts;
+	struct nos_flow_tuple nos_flow_tuple;
 
 	if (!nf_ct_invert_tuple(&repl_tuple, tuple, l3proto, l4proto)) {
 		pr_debug("Can't invert tuple.\n");
@@ -947,6 +951,14 @@ init_conntrack(struct net *net, struct nf_conn *tmpl,
 	} else {
 		timeouts = l4proto->get_timeouts(net);
 	}
+
+	/* roy: nos track init nodes */
+	nos_flow_tuple.ip_src = __be32_to_cpu(tuple->src.u3.ip);
+	nos_flow_tuple.ip_dst = __be32_to_cpu(tuple->dst.u3.ip);
+	nos_flow_tuple.port_src = __be16_to_cpu(tuple->src.u.all);
+	nos_flow_tuple.port_dst = __be16_to_cpu(tuple->dst.u.all);
+	nos_flow_tuple.proto = tuple->dst.protonum;
+	nos_track_alloc(&ct->nos_track, &nos_flow_tuple, skb);
 
 	if (!l4proto->new(ct, skb, dataoff, timeouts)) {
 		nf_conntrack_free(ct);
@@ -1634,6 +1646,12 @@ int nf_conntrack_init_start(void)
 {
 	int max_factor = 8;
 	int i, ret, cpu;
+
+	ret = nos_track_init();
+	if (ret < 0) {
+		printk("%s: nos track init failed. %d\n", __FUNCTION__, ret);
+		return ret;
+	}
 
 	for (i = 0; i < CONNTRACK_LOCKS; i++)
 		spin_lock_init(&nf_conntrack_locks[i]);

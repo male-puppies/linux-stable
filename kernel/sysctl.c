@@ -276,12 +276,68 @@ static int min_extfrag_threshold;
 static int max_extfrag_threshold = 1000;
 #endif
 
+extern unsigned long nt_shm_base;
+extern uint32_t nt_shm_size;
+extern uint32_t nt_cap_block_sz;
+extern uint32_t nt_user_offset;
+extern uint32_t nt_flow_offset;
+extern uint32_t nos_user_info_max, nos_flow_info_max;
+
 static struct ctl_table kern_table[] = {
 	{
 		.procname	= "sched_child_runs_first",
 		.data		= &sysctl_sched_child_runs_first,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_shm_base",
+		.data		= &nt_shm_base,
+		.maxlen		= sizeof(void*),
+		.mode		= 0444,
+		.proc_handler	= proc_doulongvec_minmax,
+	},
+	{
+		.procname	= "nt_shm_size",
+		.data		= &nt_shm_size,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_cap_block_sz",
+		.data		= &nt_cap_block_sz,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_user_offset",
+		.data		= &nt_user_offset,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_flow_offset",
+		.data		= &nt_flow_offset,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_flow_max",
+		.data		= &nos_flow_info_max,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_user_max",
+		.data		= &nos_user_info_max,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
 		.proc_handler	= proc_dointvec,
 	},
 #ifdef CONFIG_SCHED_DEBUG
