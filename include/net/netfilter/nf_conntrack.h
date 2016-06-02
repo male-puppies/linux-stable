@@ -18,6 +18,8 @@
 #include <linux/compiler.h>
 #include <linux/atomic.h>
 
+#include <linux/nos_track.h>
+
 #include <linux/netfilter/nf_conntrack_tcp.h>
 #include <linux/netfilter/nf_conntrack_dccp.h>
 #include <linux/netfilter/nf_conntrack_sctp.h>
@@ -114,6 +116,9 @@ struct nf_conn {
 	/* Extensions */
 	struct nf_ct_ext *ext;
 
+	/* nos track kernel private */
+	struct nos_track nos_track;
+
 	/* Storage reserved for other modules, must be the last member */
 	union nf_conntrack_proto proto;
 };
@@ -162,6 +167,18 @@ nf_ct_get(const struct sk_buff *skb, enum ip_conntrack_info *ctinfo)
 {
 	*ctinfo = skb->nfctinfo;
 	return (struct nf_conn *)skb->nfct;
+}
+
+static inline struct nos_track*
+nf_ct_get_nos(struct nf_conn *ct)
+{
+	struct nos_track* nos = &ct->nos_track;
+
+	/* FIXME: some more check need. */
+	if(nos->flow && nos->user && nos->peer) {
+		return nos;
+	}
+	return NULL;
 }
 
 /* decrement reference count on a conntrack */

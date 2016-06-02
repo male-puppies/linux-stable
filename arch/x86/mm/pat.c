@@ -746,6 +746,8 @@ static inline int range_is_allowed(unsigned long pfn, unsigned long size)
 /* This check is needed to avoid cache aliasing when PAT is enabled */
 static inline int range_is_allowed(unsigned long pfn, unsigned long size)
 {
+/* Do not check devmem as nos track use this. */
+#if 0
 	u64 from = ((u64)pfn) << PAGE_SHIFT;
 	u64 to = from + size;
 	u64 cursor = from;
@@ -762,6 +764,7 @@ static inline int range_is_allowed(unsigned long pfn, unsigned long size)
 		cursor += PAGE_SIZE;
 		pfn++;
 	}
+#endif
 	return 1;
 }
 #endif /* CONFIG_STRICT_DEVMEM */

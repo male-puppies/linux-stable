@@ -494,6 +494,7 @@ static void __init mm_init(void)
 	ioremap_huge_init();
 }
 
+extern void __init ntrack_mem_reserve(void);
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
@@ -526,6 +527,7 @@ asmlinkage __visible void __init start_kernel(void)
 	page_address_init();
 	pr_notice("%s", linux_banner);
 	setup_arch(&command_line);
+	ntrack_mem_reserve();
 	mm_init_cpumask(&init_mm);
 	setup_command_line(command_line);
 	setup_nr_cpu_ids();
