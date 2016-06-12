@@ -12,8 +12,10 @@
  #define NTRACK_BOOTM_SIZE (64 * (0x1<<20))
 #endif
 
+#define NTRACK_PKT_PRIV_SIZE (128)
+
 #define NOS_USER_INFO_SIZE			(128)
-#define NOS_FLOW_INFO_SIZE			(64)
+#define NOS_FLOW_INFO_SIZE			(128)
 
 #define NOS_USER_FLAGS_TYPE_USER 	(1<<0)
 #define NOS_USER_TRACK_TIMEOUT		(HZ * 3600 * 24) //hour ?
