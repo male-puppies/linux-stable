@@ -776,6 +776,10 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	memcpy(&new->headers_start, &old->headers_start,
 	       offsetof(struct sk_buff, headers_end) -
 	       offsetof(struct sk_buff, headers_start));
+
+	/* ntrack reserved  */
+	memcpy(new->ntrack_priv, old->ntrack_priv, sizeof(old->ntrack_priv));
+
 	CHECK_SKB_FIELD(protocol);
 	CHECK_SKB_FIELD(csum);
 	CHECK_SKB_FIELD(hash);

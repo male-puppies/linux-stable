@@ -39,6 +39,9 @@
 #include <linux/in6.h>
 #include <net/flow.h>
 
+/* define skb/ntrack pkt priv size */
+#include <linux/nos_track.h>
+
 /* A. Checksumming of received packets by device.
  *
  * CHECKSUM_NONE:
@@ -708,6 +711,9 @@ struct sk_buff {
 				*data;
 	unsigned int		truesize;
 	atomic_t		users;
+
+	/* ntrack reserved for packet parser. */
+	unsigned char ntrack_priv[NTRACK_PKT_PRIV_SIZE];
 };
 
 #ifdef __KERNEL__
