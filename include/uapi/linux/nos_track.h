@@ -24,16 +24,22 @@ typedef unsigned long utimes_t;
 
 /* kernel & user ... multi modules comm used */
 typedef struct nos_user_hdr {
-	uint32_t flags:16, type:8, status:8; /*bitmap, status.*/
-
-	utimes_t time_stamp; /* notify, statistics */
+	uint16_t flags;
+	uint8_t type;
+	uint8_t status; /*bitmap, status.*/
 	uint32_t rule_magic; /* user node match ipset rule magic, as conf update, this need sync. */
-	uint32_t recv_bytes, xmit_bytes; /* statisc */
-	uint32_t recv_pkts, xmit_pkts;
+	utimes_t time_stamp; /* notify, statistics */
+	uint64_t recv_bytes, xmit_bytes; /* statisc */
+	uint64_t recv_pkts, xmit_pkts;
 
-	int8_t rule_idx; /* user configure rule index. */
-	int8_t group_id;
-	int8_t dummy_pad[2];
+	uint64_t src_ipgrp_bits;
+	uint32_t u_usr_crc;
+	uint8_t u_grp_id;
+	uint8_t src_zone_id;
+#define NOS_RULE_TYPE_AUTH 0
+#define NOS_RULE_TYPE_MAX 1
+	uint8_t rule_idx[NOS_RULE_TYPE_MAX];
+	uint8_t dummy_pad[1];
 } user_hdr_t;
 
 typedef struct nos_flow_hdr {
@@ -41,8 +47,8 @@ typedef struct nos_flow_hdr {
 	uint16_t proto;
 
 	utimes_t time_stamp;
-	uint32_t recv_bytes, xmit_bytes;
-	uint32_t recv_pkts, xmit_pkts; /* statistics */
+	uint64_t recv_bytes, xmit_bytes;
+	uint64_t recv_pkts, xmit_pkts; /* statistics */
 } flow_hdr_t;
 /* end of comm */
 
@@ -53,9 +59,7 @@ typedef struct nos_flow_tuple {
 	uint16_t port_src;
 	uint16_t port_dst;
 	uint8_t  proto;
-	uint8_t  dir; 	//wan->lan, lan->wan, lan->lan, wan->wan.
-	uint8_t  inface;  //lan | wan.
-	uint8_t  dummy_pad;
+	uint8_t  dummy_pad[3];
 } flow_tuple_t;
 
 /* each node have 16 byte header */
