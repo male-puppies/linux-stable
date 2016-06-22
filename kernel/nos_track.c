@@ -98,8 +98,8 @@ nos_flow_info_init(struct nos_flow_track *ft, struct nos_flow_tuple *tuple)
 	struct nos_flow_info *fi = nos_flow_info_base + flow_id;
 
 	fi->id = flow_id;
-	fi->user_id = ft->user - nos_user_tracks;
-	fi->peer_id = ft->peer - nos_user_tracks;
+	fi->ui_src_id = ft->ut_src - nos_user_tracks;
+	fi->ui_dst_id = ft->ut_dst - nos_user_tracks;
 	fi->tuple = *tuple;
 
 	memset(fi->private, 0, sizeof(fi->private));
@@ -115,17 +115,14 @@ static inline int utrack_is_user(struct nos_user_track *ut)
 {
 	return ut->flags & NOS_USER_FLAGS_TYPE_USER;
 }
-nos_user_match_fn_t nos_user_match_fn = NULL;
 
-static struct nos_user_track *nos_user_track_get(uint32_t ip, struct sk_buff *skb)
+static struct nos_user_track *nos_user_track_get(uint32_t ip)
 {
 	struct nos_user_track *user;
-	struct nos_user_info *ui;
 	struct hlist_head *slot;
 	uint32_t slot_index;
-	nos_user_match_fn_t fn;
 
-	slot_index = ip % nos_user_track_hash_size;
+	slot_index = ntohl(ip) % nos_user_track_hash_size;
 
 	spin_lock_bh(&nos_user_track_hash_lock);
 
@@ -155,17 +152,7 @@ static struct nos_user_track *nos_user_track_get(uint32_t ip, struct sk_buff *sk
 	user->magic = atomic_add_return(2, &nos_user_magic);
 	spin_lock_init(&user->lock);
 
-	/* is user or peer ? */
-	ui = nos_user_info_init(user);
-	fn = rcu_dereference(nos_user_match_fn);
-	if (fn && skb && fn(ui, skb)) {
-		/* mark user */
-		user->flags |= NOS_USER_FLAGS_TYPE_USER;
-		++ user->refcnt;
-		setup_timer(&user->timeout, utrack_timeout_fn, (unsigned long)user);
-		user->timeout.expires = jiffies + NOS_USER_TRACK_TIMEOUT;
-		add_timer(&user->timeout);
-	}
+	nos_user_info_init(user);
 
 	hlist_add_head(&user->hash_node, slot);
 	user->tbq = NULL;
@@ -179,7 +166,6 @@ out:
 	spin_unlock_bh(&nos_user_track_hash_lock);
 	return user;
 }
-EXPORT_SYMBOL(nos_user_match_fn);
 
 static void
 nos_user_track_put(struct nos_user_track *user)
@@ -224,17 +210,17 @@ static void
 nos_track_check(struct nos_track *track)
 {
 	struct nos_flow_info *fi = track->flow;
-	struct nos_user_info *ui_src = track->user;
-	struct nos_user_info *ui_dst = track->peer;
-	uint32_t user_id = ui_src - nos_user_info_base;
-	uint32_t peer_id = ui_dst - nos_user_info_base;
+	struct nos_user_info *ui_src = track->ui_src;
+	struct nos_user_info *ui_dst = track->ui_dst;
+	uint32_t ui_src_id = ui_src - nos_user_info_base;
+	uint32_t ui_dst_id = ui_dst - nos_user_info_base;
 
-	if (user_id >= nos_user_track_max || user_id != fi->user_id) {
-		pr_warn_ratelimited("nos_flow_info error: %d, %d\n", user_id, fi->user_id);
+	if (ui_src_id >= nos_user_track_max || ui_src_id != fi->ui_src_id) {
+		pr_warn_ratelimited("nos_flow_info error: %d, %d\n", ui_src_id, fi->ui_src_id);
 	}
 
-	if (peer_id >= nos_user_track_max || peer_id != fi->peer_id) {
-		pr_warn_ratelimited("nos_flow_info error: %d, %d\n", peer_id, fi->peer_id);
+	if (ui_dst_id >= nos_user_track_max || ui_dst_id != fi->ui_dst_id) {
+		pr_warn_ratelimited("nos_flow_info error: %d, %d\n", ui_dst_id, fi->ui_dst_id);
 	}
 }
 
@@ -242,35 +228,27 @@ int
 nos_track_alloc(struct nos_track *track, struct nos_flow_tuple *tuple, struct sk_buff *skb)
 {
 	struct nos_flow_track *flow = NULL;
-	struct nos_user_track *user = NULL;
-	struct nos_user_track *peer = NULL;
+	struct nos_user_track *ut_src = NULL;
+	struct nos_user_track *ut_dst = NULL;
 
 	flow = nos_mempool_get(&nos_flow_track_pool);
 	if (flow == NULL)
 		goto fail;
 
-	user = nos_user_track_get(tuple->ip_src, skb);
-	peer = nos_user_track_get(tuple->ip_dst, NULL);
+	ut_src = nos_user_track_get(tuple->ip_src);
+	ut_dst = nos_user_track_get(tuple->ip_dst);
 
-	if (user == NULL || peer == NULL)
+	if (ut_src == NULL || ut_dst == NULL)
 		goto fail;
 
-	if (utrack_is_user(user)) {
-		flow->user = user;
-		flow->peer = peer;
-	} else if (utrack_is_user(peer)) {
-		flow->user = peer;
-		flow->peer = user;
-	} else {
-		flow->user = user;
-		flow->peer = peer;
-	}
+	flow->ut_src = ut_src;
+	flow->ut_dst = ut_dst;
 
 	flow->magic = atomic_add_return(2, &nos_flow_magic);
 
 	track->flow = nos_flow_info_init(flow, tuple);
-	track->user = &nos_user_info_base[track->flow->user_id];
-	track->peer = &nos_user_info_base[track->flow->peer_id];
+	track->ui_src = &nos_user_info_base[track->flow->ui_src_id];
+	track->ui_dst = &nos_user_info_base[track->flow->ui_dst_id];
 	atomic64_inc(&nos_track_stats->nr_flow_alloc);
 
 	memset(&track->tbq, 0, sizeof(track->tbq));
@@ -279,15 +257,15 @@ nos_track_alloc(struct nos_track *track, struct nos_flow_tuple *tuple, struct sk
 
 fail:
 	if (flow != NULL) {
-		if (user != NULL)
-			nos_user_track_put(user);
-		if (peer != NULL)
-			nos_user_track_put(peer);
+		if (ut_src != NULL)
+			nos_user_track_put(ut_src);
+		if (ut_dst != NULL)
+			nos_user_track_put(ut_dst);
 		nos_mempool_put(&nos_flow_track_pool, flow);
 	}
 	track->flow = NULL;
-	track->user = NULL;
-	track->peer = NULL;
+	track->ui_src = NULL;
+	track->ui_dst = NULL;
 	return -1;
 }
 EXPORT_SYMBOL(nos_track_alloc);
@@ -318,8 +296,8 @@ nos_track_free(struct nos_track *track)
 
 	track->flow->magic = flow->magic | 1U; // delete mark
 
-	nos_user_track_put(flow->user);
-	nos_user_track_put(flow->peer);
+	nos_user_track_put(flow->ut_src);
+	nos_user_track_put(flow->ut_dst);
 
 	nos_mempool_put(&nos_flow_track_pool, flow);
 
@@ -333,10 +311,11 @@ nos_get_user_track(struct nos_track *track)
 	int user_id;
 
 	BUG_ON(track->flow == NULL);
-	BUG_ON(track->user == NULL);
-	BUG_ON(track->peer == NULL);
+	BUG_ON(track->ui_src == NULL);
+	BUG_ON(track->ui_dst == NULL);
 
-	user_id = track->user - nos_user_info_base;
+	//FIXME
+	user_id = track->ui_src - nos_user_info_base;
 	BUG_ON(user_id < 0 || user_id >= nos_user_track_max);
 	return nos_user_tracks + user_id;
 }
@@ -348,14 +327,35 @@ nos_get_flow_track(struct nos_track *track)
 	int flow_id;
 
 	BUG_ON(track->flow == NULL);
-	BUG_ON(track->user == NULL);
-	BUG_ON(track->peer == NULL);
+	BUG_ON(track->ui_src == NULL);
+	BUG_ON(track->ui_dst == NULL);
 
 	flow_id = track->flow - nos_flow_info_base;
 	BUG_ON(flow_id < 0 || flow_id >= nos_flow_track_max);
 	return nos_flow_tracks + flow_id;
 }
 EXPORT_SYMBOL(nos_get_flow_track);
+
+void nos_user_info_hold(struct nos_user_info *ui)
+{
+	int user_id;
+	struct nos_user_track *user;
+
+	user_id = ui - nos_user_info_base;
+	BUG_ON(user_id < 0 || user_id >= nos_user_track_max);
+	user = nos_user_tracks + user_id;
+	spin_lock_bh(&user->lock);
+	if (user->flags & NOS_USER_FLAGS_TYPE_USER)
+		goto out;
+	user->flags |= NOS_USER_FLAGS_TYPE_USER;
+	++ user->refcnt;
+	setup_timer(&user->timeout, utrack_timeout_fn, (unsigned long)user);
+	user->timeout.expires = jiffies + NOS_USER_TRACK_TIMEOUT;
+	add_timer(&user->timeout);
+out:
+	spin_unlock_bh(&user->lock);
+}
+EXPORT_SYMBOL(nos_user_info_hold);
 
 void nos_track_event_register(struct nos_track_event *ev)
 {
@@ -397,7 +397,7 @@ static int nos_vars_init(void)
 
 static int nos_mmap_init(void)
 {
-	void *base = phys_to_virt(nt_shm_base);
+	void *base = phys_to_virt((phys_addr_t)nt_shm_base);
 	nos_track_cap_base = base;
 	printk("nos_track_cap_base: %p, size: %x\n", nos_track_cap_base, nos_track_cap_size);
 
@@ -410,11 +410,11 @@ static int nos_mmap_init(void)
 
 	printk("nos shm: %p size: %x\n", nt_shm_base, nt_shm_size);
 
-	printk("nos_user_info_base: %p (phys: %x)\n",
+	printk("nos_user_info_base: %p (phys: %llx)\n",
 		nos_user_info_base, virt_to_phys(nos_user_info_base));
-	printk("nos_flow_info_base: %p (phys: %x)\n",
+	printk("nos_flow_info_base: %p (phys: %llx)\n",
 		nos_flow_info_base, virt_to_phys(nos_flow_info_base));
-	printk("nos_track_stats: %p (phys: %x)\n",
+	printk("nos_track_stats: %p (phys: %llx)\n",
 		nos_track_stats, virt_to_phys(nos_track_stats));
 
 	if (virt_to_phys(nos_track_stats - 1) > nosmem_res.end) {
@@ -484,9 +484,9 @@ int nos_track_init()
 	INIT_LIST_HEAD(&nos_track_events.list);
 	spin_lock_init(&nos_track_events.lock);
 
-	printk("nos_track_init() OK [user size: %d, flow size: %d]\n",
-		(int)sizeof(struct nos_user_info), (int)sizeof(struct nos_flow_info));
-	printk("\t[user priv size: %d, flow priv size: %d]\n",
+	printk("nos_track_init() OK [user size: %lu, flow size: %lu]\n",
+		sizeof(struct nos_user_info), sizeof(struct nos_flow_info));
+	printk("\t[user priv size: %lu, flow priv size: %lu]\n",
 		NOS_USER_DATA_SIZE, NOS_FLOW_DATA_SIZE);
 
 	return 0;
@@ -512,10 +512,10 @@ void __init ntrack_mem_reserve(void)
 		pr_warn("nos reservation failed - mem in use %lx\n", (unsigned long)nt_shm_base);
 		return;
 	}
-	nt_shm_base = virt_to_phys(nt_shm_base);
+	nt_shm_base = (void *)virt_to_phys(nt_shm_base);
 
-	nosmem_res.start = nt_shm_base;
-	nosmem_res.end = nosmem_res.start + nt_shm_size - 1;
+	nosmem_res.start = (unsigned long)nt_shm_base;
+	nosmem_res.end = (unsigned long)nosmem_res.start + (unsigned long)nt_shm_size - 1;
 	ret = insert_resource(&iomem_resource, &nosmem_res);
 	if (ret) {
 		pr_err("Resource %ldMB of mem at %ldMB for nos_track failed. %d\n",

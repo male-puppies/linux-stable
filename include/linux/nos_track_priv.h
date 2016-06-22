@@ -36,8 +36,8 @@ struct tbq_flow_track {
 
 struct nos_track {
 	struct nos_flow_info *flow;
-	struct nos_user_info *user;
-	struct nos_user_info *peer;
+	struct nos_user_info *ui_src;
+	struct nos_user_info *ui_dst;
 	struct tbq_flow_track tbq;
 };
 
@@ -54,8 +54,8 @@ struct nos_user_track {
 
 struct nos_flow_track {
 	uint32_t magic;
-	struct nos_user_track *user;
-	struct nos_user_track *peer;
+	struct nos_user_track *ut_src;
+	struct nos_user_track *ut_dst;
 };
 
 struct nos_track_event {
@@ -70,9 +70,6 @@ struct nos_track_stats {
 	atomic64_t nr_ring_drop;
 };
 
-typedef int (*nos_user_match_fn_t)(struct nos_user_info *ui, struct sk_buff *skb);
-extern nos_user_match_fn_t nos_user_match_fn;
-
 extern void* nos_track_cap_base;
 extern uint32_t nos_track_cap_size;
 extern uint32_t nos_user_info_max, nos_flow_info_max;
@@ -84,6 +81,8 @@ void nos_track_free(struct nos_track *track);
 
 struct nos_user_track *nos_get_user_track(struct nos_track *track);
 struct nos_flow_track *nos_get_flow_track(struct nos_track *track);
+
+void nos_user_info_hold(struct nos_user_info *ui);
 
 void nos_track_event_register(struct nos_track_event *ev);
 void nos_track_event_unregister(struct nos_track_event *ev);

@@ -175,7 +175,7 @@ nf_ct_get_nos(struct nf_conn *ct)
 	struct nos_track* nos = &ct->nos_track;
 
 	/* FIXME: some more check need. */
-	if(nos->flow && nos->user && nos->peer) {
+	if(nos->flow && nos->ui_src && nos->ui_dst) {
 		return nos;
 	}
 	return NULL;
