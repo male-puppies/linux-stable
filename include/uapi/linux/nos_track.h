@@ -82,8 +82,8 @@ typedef struct nos_flow_info {
 	/* !!! keep this 16 byte header sync, DO not modify !!! */
 	uint32_t magic;
 	uint32_t id;
-	uint32_t user_id;
-	uint32_t peer_id;
+	uint32_t ui_src_id;
+	uint32_t ui_dst_id;
 	/* end */
 
 	struct nos_flow_tuple tuple;

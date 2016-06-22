@@ -953,10 +953,10 @@ init_conntrack(struct net *net, struct nf_conn *tmpl,
 	}
 
 	/* roy: nos track init nodes */
-	nos_flow_tuple.ip_src = __be32_to_cpu(tuple->src.u3.ip);
-	nos_flow_tuple.ip_dst = __be32_to_cpu(tuple->dst.u3.ip);
-	nos_flow_tuple.port_src = __be16_to_cpu(tuple->src.u.all);
-	nos_flow_tuple.port_dst = __be16_to_cpu(tuple->dst.u.all);
+	nos_flow_tuple.ip_src = tuple->src.u3.ip;
+	nos_flow_tuple.ip_dst = tuple->dst.u3.ip;
+	nos_flow_tuple.port_src = tuple->src.u.all;
+	nos_flow_tuple.port_dst = tuple->dst.u.all;
 	nos_flow_tuple.proto = tuple->dst.protonum;
 	nos_track_alloc(&ct->nos_track, &nos_flow_tuple, skb);
 
