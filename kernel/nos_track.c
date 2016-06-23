@@ -29,6 +29,9 @@ EXPORT_SYMBOL(nos_track_stats);
 EXPORT_SYMBOL(nos_user_info_max);
 EXPORT_SYMBOL(nos_flow_info_max);
 
+uint32_t	nos_auth_no_flow_timeout = 3600;
+EXPORT_SYMBOL(nos_auth_no_flow_timeout);
+
 /* for local use */
 static uint32_t nos_user_track_hash_size;
 static uint32_t nos_user_track_max;
@@ -58,9 +61,18 @@ static void nos_user_track_put(struct nos_user_track *);
 
 static void utrack_timeout_fn(unsigned long d)
 {
+	int user_id;
+	struct nos_user_info *ui;
 	struct nos_user_track *ut = (struct nos_user_track*)d;
 
-	nos_user_track_put(ut);
+	user_id = ut - nos_user_tracks;
+	ui = nos_user_info_base + user_id;
+	if (time_after(jiffies, ui->hdr.time_stamp + nos_auth_no_flow_timeout * HZ)) {
+		//timeout
+		nos_user_track_put(ut);
+	} else {
+		mod_timer(&ut->timeout, jiffies + NOS_USER_TRACK_INTERVAL);
+	}
 }
 
 static struct nos_user_info *
@@ -350,7 +362,7 @@ void nos_user_info_hold(struct nos_user_info *ui)
 	user->flags |= NOS_USER_FLAGS_TYPE_USER;
 	++ user->refcnt;
 	setup_timer(&user->timeout, utrack_timeout_fn, (unsigned long)user);
-	user->timeout.expires = jiffies + NOS_USER_TRACK_TIMEOUT;
+	user->timeout.expires = jiffies + NOS_USER_TRACK_INTERVAL;
 	add_timer(&user->timeout);
 out:
 	spin_unlock_bh(&user->lock);

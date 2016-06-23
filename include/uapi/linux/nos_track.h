@@ -18,7 +18,7 @@
 #define NOS_FLOW_INFO_SIZE			(128)
 
 #define NOS_USER_FLAGS_TYPE_USER 	(1<<0)
-#define NOS_USER_TRACK_TIMEOUT		(HZ * 3600 * 24) //hour ?
+#define NOS_USER_TRACK_INTERVAL		(60 * HZ)
 
 typedef unsigned long utimes_t;
 

@@ -75,6 +75,8 @@ extern uint32_t nos_track_cap_size;
 extern uint32_t nos_user_info_max, nos_flow_info_max;
 extern struct nos_track_stats *nos_track_stats;
 
+extern uint32_t nos_auth_no_flow_timeout;
+
 int nos_track_init(void);
 int nos_track_alloc(struct nos_track *track, struct nos_flow_tuple *tuple, struct sk_buff *skb);
 void nos_track_free(struct nos_track *track);
