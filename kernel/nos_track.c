@@ -114,6 +114,7 @@ nos_flow_info_init(struct nos_flow_track *ft, struct nos_flow_tuple *tuple)
 	fi->ui_dst_id = ft->ut_dst - nos_user_tracks;
 	fi->tuple = *tuple;
 
+	memset(&fi->hdr, 0, sizeof(fi->hdr));
 	memset(fi->private, 0, sizeof(fi->private));
 
 	smp_wmb();
