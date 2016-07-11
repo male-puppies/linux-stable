@@ -37,6 +37,7 @@ typedef struct nos_user_hdr {
 #define NOS_RULE_TYPE_AUTH 0
 #define NOS_RULE_TYPE_MAX 1
 	uint8_t rule_idx[NOS_RULE_TYPE_MAX];
+	uint8_t macaddr[6];
 } user_hdr_t;
 
 typedef struct nos_flow_hdr {
