@@ -31,12 +31,15 @@ typedef struct nos_user_hdr {
 	uint64_t recv_bytes, xmit_bytes; /* statisc */
 	uint64_t recv_pkts, xmit_pkts;
 
+	uint64_t ipgrp_bits;
 	uint32_t u_usr_crc;
-	uint16_t rule_magic; /* user node match ipset rule magic, as conf update, this need sync. */
 	uint8_t u_grp_id;
-#define NOS_RULE_TYPE_AUTH 0
-#define NOS_RULE_TYPE_MAX 1
-	uint8_t rule_idx[NOS_RULE_TYPE_MAX];
+	uint8_t zone_id;
+	uint8_t rule_id;
+	uint8_t dummy_pad[1];
+	uint16_t rule_magic;
+	uint16_t zone_magic;
+	uint16_t ipgrp_magic;
 	uint8_t macaddr[6];
 } user_hdr_t;
 
@@ -46,14 +49,6 @@ typedef struct nos_flow_hdr {
 	utimes_t time_stamp;
 	uint64_t recv_bytes, xmit_bytes;
 	uint64_t recv_pkts, xmit_pkts; /* statistics */
-
-	/* sipgrp dipgrp szone dzone */
-	uint64_t src_ipgrp_bits;
-	uint64_t dst_ipgrp_bits;
-	uint8_t src_zone_id;
-	uint8_t dst_zone_id;
-#define INFO_STATUS_VALID_BIT (1<<0)
-	uint16_t info_status; /* flow node status valid or not */
 } flow_hdr_t;
 /* end of comm */
 
