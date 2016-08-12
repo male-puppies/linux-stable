@@ -56,10 +56,3 @@ config HZ
 
 config SCHED_HRTICK
 	def_bool HIGH_RES_TIMERS
-
-config NTRACK_BOOTM_SIZE
-	prompt "(Mbytes) nos track system reserved bottom memory."
-	int
-	default 64
-	help
-	 how meny M bytes reserved for ntrack memap area.

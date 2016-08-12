@@ -830,6 +830,13 @@ config LOG_BUF_SHIFT
 		     13 =>  8 KB
 		     12 =>  4 KB
 
+config NTRACK_BOOTM_SIZE
+	prompt "(Mbytes) nos track system reserved bottom memory."
+	int
+	default 64
+	help
+	 how meny M bytes reserved for ntrack memap area.
+
 config LOG_CPU_MAX_BUF_SHIFT
 	int "CPU kernel log buffer size contribution (13 => 8 KB, 17 => 128KB)"
 	depends on SMP
