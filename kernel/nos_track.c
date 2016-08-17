@@ -520,7 +520,7 @@ void __init ntrack_mem_reserve(void)
 {
 	int ret;
 
-	nt_shm_base = alloc_bootmem(nt_shm_size);
+	nt_shm_base = alloc_bootmem_align(nt_shm_size, PAGE_SIZE);
 	if (!nt_shm_base) {
 		pr_warn("nos reservation failed - mem in use %lx\n", (unsigned long)nt_shm_base);
 		return;
