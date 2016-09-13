@@ -281,7 +281,10 @@ extern uint32_t nt_shm_size;
 extern uint32_t nt_cap_block_sz;
 extern uint32_t nt_user_offset;
 extern uint32_t nt_flow_offset;
+extern uint32_t nt_stat_offset;
+extern uint32_t nt_stat_size;
 extern uint32_t nos_user_info_max, nos_flow_info_max;
+extern struct nos_track_stats nos_track_stats;
 
 static struct ctl_table kern_table[] = {
 	{
@@ -327,11 +330,46 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec,
 	},
 	{
+		.procname	= "nt_stat_offset",
+		.data		= &nt_stat_offset,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_stat_size",
+		.data		= &nt_stat_size,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
 		.procname	= "nt_flow_max",
 		.data		= &nos_flow_info_max,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0444,
 		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "nt_flow_alloc",
+		.data		= &nos_track_stats.nr_flow_alloc,
+		.maxlen		= sizeof(nos_track_stats.nr_flow_alloc),
+		.mode		= 0444,
+		.proc_handler	= proc_doulongvec_minmax,
+	},
+	{
+		.procname	= "nt_flow_free",
+		.data		= &nos_track_stats.nr_flow_free,
+		.maxlen		= sizeof(nos_track_stats.nr_flow_free),
+		.mode		= 0444,
+		.proc_handler	= proc_doulongvec_minmax,
+	},
+	{
+		.procname	= "nt_flow_drop",
+		.data		= &nos_track_stats.nr_flow_drop,
+		.maxlen		= sizeof(nos_track_stats.nr_flow_drop),
+		.mode		= 0444,
+		.proc_handler	= proc_doulongvec_minmax,
 	},
 	{
 		.procname	= "nt_user_max",
