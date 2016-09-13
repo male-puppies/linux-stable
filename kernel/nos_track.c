@@ -15,17 +15,22 @@ uint32_t 	nt_shm_size = NTRACK_BOOTM_SIZE;
 uint32_t 	nt_cap_block_sz = 0;
 uint32_t 	nt_user_offset = 0;
 uint32_t 	nt_flow_offset = 0;
+uint32_t 	nt_stat_offset = 0;
+uint32_t 	nt_stat_size = 0;
 
 /* for modules use */
 void 		*nos_track_cap_base = NULL;
 uint32_t 	nos_track_cap_size = 0;
 uint32_t 	nos_user_info_max, nos_flow_info_max;
-struct nos_track_stats *nos_track_stats;
+
+void*   nos_stat_info_base;
+struct  nos_track_stats nos_track_stats;
 
 EXPORT_SYMBOL(nt_cap_block_sz);
 EXPORT_SYMBOL(nos_track_cap_base);
 EXPORT_SYMBOL(nos_track_cap_size);
 EXPORT_SYMBOL(nos_track_stats);
+EXPORT_SYMBOL(nos_stat_info_base);
 EXPORT_SYMBOL(nos_user_info_max);
 EXPORT_SYMBOL(nos_flow_info_max);
 
@@ -262,7 +267,7 @@ nos_track_alloc(struct nos_track *track, struct nos_flow_tuple *tuple, struct sk
 	track->flow = nos_flow_info_init(flow, tuple);
 	track->ui_src = &nos_user_info_base[track->flow->ui_src_id];
 	track->ui_dst = &nos_user_info_base[track->flow->ui_dst_id];
-	atomic64_inc(&nos_track_stats->nr_flow_alloc);
+	atomic64_inc(&nos_track_stats.nr_flow_alloc);
 
 	memset(&track->tbq, 0, sizeof(track->tbq));
 
@@ -279,6 +284,7 @@ fail:
 	track->flow = NULL;
 	track->ui_src = NULL;
 	track->ui_dst = NULL;
+	atomic64_inc(&nos_track_stats.nr_flow_drop);
 	return -1;
 }
 EXPORT_SYMBOL(nos_track_alloc);
@@ -314,7 +320,7 @@ nos_track_free(struct nos_track *track)
 
 	nos_mempool_put(&nos_flow_track_pool, flow);
 
-	atomic64_inc(&nos_track_stats->nr_flow_free);
+	atomic64_inc(&nos_track_stats.nr_flow_free);
 }
 EXPORT_SYMBOL(nos_track_free);
 
@@ -416,21 +422,23 @@ static int nos_mmap_init(void)
 
 	nos_user_info_base = base + nos_track_cap_size;
 	nos_flow_info_base = (void *)(nos_user_info_base + nos_user_track_max);
-	nos_track_stats = (void *)(nos_flow_info_base + nos_flow_track_max);
+	nos_stat_info_base = (void *)(nos_flow_info_base + nos_flow_track_max);
+	nt_stat_offset = (void *)nos_stat_info_base - base;
+	nt_stat_size = nt_shm_size - nt_stat_offset;
 
 	nt_user_offset = (unsigned long)nos_user_info_base - (unsigned long)nos_track_cap_base;
 	nt_flow_offset = (unsigned long)nos_flow_info_base - (unsigned long)nos_track_cap_base;
 
 	printk("nos shm: %p size: %x\n", nt_shm_base, nt_shm_size);
 
-	printk("nos_user_info_base: %p (phys: %llx)\n",
-		nos_user_info_base, virt_to_phys(nos_user_info_base));
-	printk("nos_flow_info_base: %p (phys: %llx)\n",
-		nos_flow_info_base, virt_to_phys(nos_flow_info_base));
-	printk("nos_track_stats: %p (phys: %llx)\n",
-		nos_track_stats, virt_to_phys(nos_track_stats));
+	printk("nos_user_info_base: %p (phys: %lx)\n",
+		nos_user_info_base, (long)virt_to_phys(nos_user_info_base));
+	printk("nos_flow_info_base: %p (phys: %lx)\n",
+		nos_flow_info_base, (long)virt_to_phys(nos_flow_info_base));
+	printk("nos_stat_info_base: %p (phys: %lx)\n",
+		nos_stat_info_base, (long)virt_to_phys(nos_stat_info_base));
 
-	if (virt_to_phys(nos_track_stats - 1) > nosmem_res.end) {
+	if (virt_to_phys(nos_stat_info_base - 1) > nosmem_res.end) {
 		printk("nosmem_res oom: [%llu - %llu]\n", (uint64_t)nosmem_res.start, (uint64_t)nosmem_res.end);
 		return -1;
 	}
@@ -497,7 +505,7 @@ int nos_track_init()
 	INIT_LIST_HEAD(&nos_track_events.list);
 	spin_lock_init(&nos_track_events.lock);
 
-	printk("nos_track_init() OK [user size: %lu, flow size: %lu]\n",
+	printk("nos_track_init() OK [user size: %u, flow size: %u]\n",
 		sizeof(struct nos_user_info), sizeof(struct nos_flow_info));
 	printk("\t[user priv size: %lu, flow priv size: %lu]\n",
 		NOS_USER_DATA_SIZE, NOS_FLOW_DATA_SIZE);
