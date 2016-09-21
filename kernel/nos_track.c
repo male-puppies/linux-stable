@@ -129,11 +129,6 @@ nos_flow_info_init(struct nos_flow_track *ft, struct nos_flow_tuple *tuple)
 	return fi;
 }
 
-static inline int utrack_is_user(struct nos_user_track *ut)
-{
-	return ut->flags & NOS_USER_FLAGS_TYPE_USER;
-}
-
 static struct nos_user_track *nos_user_track_get(uint32_t ip)
 {
 	struct nos_user_track *user;
@@ -355,24 +350,39 @@ nos_get_flow_track(struct nos_track *track)
 }
 EXPORT_SYMBOL(nos_get_flow_track);
 
+static inline struct nos_user_track* ui_to_ut(struct nos_user_info *ui)
+{
+	int ut_id;
+
+	ut_id = ui - nos_user_info_base;
+	BUG_ON(ut_id < 0 || ut_id >= nos_user_track_max);
+	return nos_user_tracks + ut_id;
+}
+
+int nos_is_user(struct nos_user_info *ui)
+{
+	struct nos_user_track *ut;
+
+	ut = ui_to_ut(ui);
+	return ut->flags & NOS_USER_FLAGS_TYPE_USER;
+}
+EXPORT_SYMBOL(nos_is_user);
+
 void nos_user_info_hold(struct nos_user_info *ui)
 {
-	int user_id;
-	struct nos_user_track *user;
+	struct nos_user_track *ut;
 
-	user_id = ui - nos_user_info_base;
-	BUG_ON(user_id < 0 || user_id >= nos_user_track_max);
-	user = nos_user_tracks + user_id;
-	spin_lock_bh(&user->lock);
-	if (user->flags & NOS_USER_FLAGS_TYPE_USER)
+	ut = ui_to_ut(ui);
+	spin_lock_bh(&ut->lock);
+	if (ut->flags & NOS_USER_FLAGS_TYPE_USER)
 		goto out;
-	user->flags |= NOS_USER_FLAGS_TYPE_USER;
-	++ user->refcnt;
-	setup_timer(&user->timeout, utrack_timeout_fn, (unsigned long)user);
-	user->timeout.expires = jiffies + NOS_USER_TRACK_INTERVAL;
-	add_timer(&user->timeout);
+	ut->flags |= NOS_USER_FLAGS_TYPE_USER;
+	++ ut->refcnt;
+	setup_timer(&ut->timeout, utrack_timeout_fn, (unsigned long)ut);
+	ut->timeout.expires = jiffies + NOS_USER_TRACK_INTERVAL;
+	add_timer(&ut->timeout);
 out:
-	spin_unlock_bh(&user->lock);
+	spin_unlock_bh(&ut->lock);
 }
 EXPORT_SYMBOL(nos_user_info_hold);
 

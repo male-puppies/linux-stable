@@ -84,6 +84,7 @@ void nos_track_free(struct nos_track *track);
 struct nos_user_track *nos_get_user_track(struct nos_track *track);
 struct nos_flow_track *nos_get_flow_track(struct nos_track *track);
 
+int nos_is_user(struct nos_user_info *ui);
 void nos_user_info_hold(struct nos_user_info *ui);
 
 void nos_track_event_register(struct nos_track_event *ev);
