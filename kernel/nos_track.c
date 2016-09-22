@@ -11,7 +11,8 @@
 
 /* for sysctl read */
 void		*nt_shm_base = NULL;
-uint32_t 	nt_shm_size = NTRACK_BOOTM_SIZE;
+uint32_t	nt_shm_size_prv = NTRACK_BOOTM_SIZE;
+uint32_t 	nt_shm_size = (NTRACK_BOOTM_SIZE >> 1) + NTRACK_BOOTM_SIZE;
 uint32_t 	nt_cap_block_sz = 0;
 uint32_t 	nt_user_offset = 0;
 uint32_t 	nt_flow_offset = 0;
@@ -412,9 +413,9 @@ static struct resource nosmem_res = {
 
 static int nos_vars_init(void)
 {
-	nos_track_cap_size = nt_shm_size / 4;
-	nos_user_track_max = nt_shm_size / 4 / sizeof(user_info_t);
-	nos_flow_track_max = nt_shm_size / 4 / sizeof(flow_info_t);
+	nos_track_cap_size = nt_shm_size_prv / 4;
+	nos_user_track_max = nt_shm_size_prv / 2 / sizeof(user_info_t);
+	nos_flow_track_max = nt_shm_size_prv / 2 / sizeof(flow_info_t);
 
 	nos_user_track_hash_size = nos_user_track_max / 4;
 
@@ -564,22 +565,26 @@ static int __init set_ntrack_mem_size(char *str)
 	int ret;
 
 	if (*str++ != '=' || !*str) {
-		nt_shm_size = NTRACK_BOOTM_SIZE;
+		nt_shm_size_prv = NTRACK_BOOTM_SIZE;
+		nt_shm_size = (nt_shm_size_prv >> 1) + nt_shm_size_prv;
 		ret = 1;
 		goto __finished;
 	}
 
-	ret = kstrtouint(str, 0, &nt_shm_size);
+	ret = kstrtouint(str, 0, &nt_shm_size_prv);
 	if(ret) {
-		nt_shm_size = NTRACK_BOOTM_SIZE;
+		nt_shm_size_prv = NTRACK_BOOTM_SIZE;
+		nt_shm_size = (nt_shm_size_prv >> 1) + nt_shm_size_prv;
 		ret = 1;
 		goto __finished;
 	}
 
-	if(nt_shm_size > 0 && nt_shm_size <= 64) {
-		nt_shm_size = (nt_shm_size<<20);
+	if(nt_shm_size_prv > 0 && nt_shm_size_prv <= 64) {
+		nt_shm_size_prv = (nt_shm_size_prv<<20);
+		nt_shm_size = (nt_shm_size_prv >> 1) + nt_shm_size_prv;
 	} else {
-		nt_shm_size = NTRACK_BOOTM_SIZE;
+		nt_shm_size_prv = NTRACK_BOOTM_SIZE;
+		nt_shm_size = (nt_shm_size_prv >> 1) + nt_shm_size_prv;
 	}
 
 __finished:
