@@ -9,7 +9,7 @@
 #ifdef CONFIG_NTRACK_BOOTM_SIZE
  #define NTRACK_BOOTM_SIZE (CONFIG_NTRACK_BOOTM_SIZE * (0x1<<20))
 #else
- #define NTRACK_BOOTM_SIZE (64 * (0x1<<20))
+ #define NTRACK_BOOTM_SIZE (32 * (0x1<<20))
 #endif
 
 #define NTRACK_PKT_PRIV_SIZE (128)
