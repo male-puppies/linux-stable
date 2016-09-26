@@ -164,12 +164,13 @@ static struct nos_user_track *nos_user_track_get(uint32_t ip)
 	user->ip = ip;
 	user->refcnt = 1;
 	user->magic = atomic_add_return(2, &nos_user_magic);
+	user->flags = 0;
+	user->tbq = NULL;
 	spin_lock_init(&user->lock);
 
 	nos_user_info_init(user);
 
 	hlist_add_head(&user->hash_node, slot);
-	user->tbq = NULL;
 
 #if 0
 	printk("[nos_track] ADD USER: %pI4h\t(%6d / %6d)\n",
