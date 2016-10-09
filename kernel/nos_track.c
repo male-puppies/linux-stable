@@ -202,7 +202,9 @@ nos_user_track_put(struct nos_user_track *user)
 
 	spin_lock_bh(&nos_track_events.lock);
 	list_for_each_entry(ev, &nos_track_events.list, list) {
-		ev->on_user_free(user);
+		if(ev->on_user_free) {
+			ev->on_user_free(user);
+		}
 	}
 	spin_unlock_bh(&nos_track_events.lock);
 
@@ -306,7 +308,9 @@ nos_track_free(struct nos_track *track)
 
 	spin_lock_bh(&nos_track_events.lock);
 	list_for_each_entry(ev, &nos_track_events.list, list) {
-		ev->on_flow_free(&track->tbq);
+		if(ev->on_flow_free) {
+			ev->on_flow_free(track);
+		}
 	}
 	spin_unlock_bh(&nos_track_events.lock);
 
