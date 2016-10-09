@@ -61,7 +61,7 @@ struct nos_flow_track {
 struct nos_track_event {
 	struct list_head list;
 	void (* on_user_free)(struct nos_user_track *);
-	void (* on_flow_free)(struct tbq_flow_track *);
+	void (* on_flow_free)(struct nos_track *);
 };
 
 struct nos_track_stats {
