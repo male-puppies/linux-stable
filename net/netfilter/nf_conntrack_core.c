@@ -952,13 +952,19 @@ init_conntrack(struct net *net, struct nf_conn *tmpl,
 		timeouts = l4proto->get_timeouts(net);
 	}
 
-	/* roy: nos track init nodes */
-	nos_flow_tuple.ip_src = tuple->src.u3.ip;
-	nos_flow_tuple.ip_dst = tuple->dst.u3.ip;
-	nos_flow_tuple.port_src = tuple->src.u.all;
-	nos_flow_tuple.port_dst = tuple->dst.u.all;
-	nos_flow_tuple.proto = tuple->dst.protonum;
-	nos_track_alloc(&ct->nos_track, &nos_flow_tuple, skb);
+	if ( !(ipv4_is_lbcast(tuple->src.u3.ip) || ipv4_is_lbcast(tuple->dst.u3.ip) ||
+			ipv4_is_loopback(tuple->src.u3.ip) || ipv4_is_loopback(tuple->dst.u3.ip) ||
+			ipv4_is_multicast(tuple->src.u3.ip) || ipv4_is_multicast(tuple->dst.u3.ip) ||
+			ipv4_is_zeronet(tuple->src.u3.ip) || ipv4_is_zeronet(tuple->dst.u3.ip)) )
+	{
+		/* roy: nos track init nodes */
+		nos_flow_tuple.ip_src = tuple->src.u3.ip;
+		nos_flow_tuple.ip_dst = tuple->dst.u3.ip;
+		nos_flow_tuple.port_src = tuple->src.u.all;
+		nos_flow_tuple.port_dst = tuple->dst.u.all;
+		nos_flow_tuple.proto = tuple->dst.protonum;
+		nos_track_alloc(&ct->nos_track, &nos_flow_tuple, skb);
+	}
 
 	if (!l4proto->new(ct, skb, dataoff, timeouts)) {
 		nf_conntrack_free(ct);
