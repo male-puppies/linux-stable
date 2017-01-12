@@ -482,6 +482,9 @@ int nos_track_init()
 	BUG_ON(sizeof(user_info_t) != NOS_USER_INFO_SIZE);
 	BUG_ON(sizeof(flow_info_t) != NOS_FLOW_INFO_SIZE);
 
+	INIT_LIST_HEAD(&nos_track_events.list);
+	spin_lock_init(&nos_track_events.lock);
+
 	if(!nt_shm_base) {
 		printk("nos track reserve mem nil.\n");
 		return -ENOMEM;
@@ -526,9 +529,6 @@ int nos_track_init()
 	for (i = 0; i < nos_user_track_hash_size; i++) {
 		INIT_HLIST_HEAD(&nos_user_track_hash[i]);
 	}
-
-	INIT_LIST_HEAD(&nos_track_events.list);
-	spin_lock_init(&nos_track_events.lock);
 
 	printk("nos_track_init() OK [user size: %u, flow size: %u]\n",
 		sizeof(struct nos_user_info), sizeof(struct nos_flow_info));
