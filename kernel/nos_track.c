@@ -427,12 +427,21 @@ static int nos_vars_init(void)
 	nos_user_info_max = nos_user_track_max;
 	nos_flow_info_max = nos_flow_track_max;
 
+	if (nos_track_cap_size <= 0) {
+		return -1;
+	}
+
 	return 0;
 }
 
 static int nos_mmap_init(void)
 {
-	void *base = phys_to_virt((phys_addr_t)nt_shm_base);
+	void *base;
+	if (nt_shm_size == 0) {
+		printk("nos no shm reserved\n");
+		return -1;
+	}
+	base = phys_to_virt((phys_addr_t)nt_shm_base);
 	nos_track_cap_base = base;
 	printk("nos_track_cap_base: %p, size: %x\n", nos_track_cap_base, nos_track_cap_size);
 
@@ -544,6 +553,10 @@ void __init ntrack_mem_reserve(void)
 {
 	int ret;
 
+	if (nt_shm_size == 0) {
+		nt_shm_base = 0;
+		return;
+	}
 	nt_shm_base = alloc_bootmem_align(nt_shm_size, PAGE_SIZE);
 	if (!nt_shm_base) {
 		pr_warn("nos reservation failed - mem in use %lx\n", (unsigned long)nt_shm_base);

@@ -1655,8 +1655,7 @@ int nf_conntrack_init_start(void)
 
 	ret = nos_track_init();
 	if (ret < 0) {
-		printk("%s: nos track init failed. %d\n", __FUNCTION__, ret);
-		return ret;
+		printk("%s: nos track init failed. %d, ignore!!!\n", __FUNCTION__, ret);
 	}
 
 	for (i = 0; i < CONNTRACK_LOCKS; i++)
