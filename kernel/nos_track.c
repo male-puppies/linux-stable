@@ -24,7 +24,7 @@ void 		*nos_track_cap_base = NULL;
 uint32_t 	nos_track_cap_size = 0;
 uint32_t 	nos_user_info_max, nos_flow_info_max;
 
-void*   nos_stat_info_base;
+void*   nos_stat_info_base = NULL;
 struct  nos_track_stats nos_track_stats;
 
 EXPORT_SYMBOL(nt_cap_block_sz);
@@ -55,8 +55,8 @@ static spinlock_t nos_user_track_hash_lock;
 static atomic_t nos_user_magic = ATOMIC_INIT(0);
 static atomic_t nos_flow_magic = ATOMIC_INIT(0);
 
-static struct nos_user_info *nos_user_info_base;
-static struct nos_flow_info *nos_flow_info_base;
+static struct nos_user_info *nos_user_info_base = NULL;
+static struct nos_flow_info *nos_flow_info_base = NULL;
 
 static struct {
 	struct list_head list;
