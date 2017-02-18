@@ -36,7 +36,7 @@ typedef struct nos_user_hdr {
 	uint8_t u_grp_id;
 	uint8_t zone_id;
 	uint8_t rule_id;
-	uint8_t dummy_pad[1];
+	uint8_t tbq_level;
 	uint16_t rule_magic;
 	uint16_t zone_magic;
 	uint16_t ipgrp_magic;

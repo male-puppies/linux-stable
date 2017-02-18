@@ -26,6 +26,7 @@ struct tbq_flow_backlog {
 
 struct tbq_flow_track {
 	struct list_head list;
+	uint16_t tbq_level;
 	uint16_t dummy;
 	uint16_t app_id;
 	uint16_t uname_match;	//mo
