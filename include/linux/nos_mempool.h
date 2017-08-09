@@ -40,8 +40,10 @@ nos_mempool_get(struct nos_mempool *pool)
 		pool->nr_used++;
 		pool->nr_free--;
 	} else {
-		pr_warn_ratelimited("nos_mempool oom: %s, nr_used: %d, nr_free: %d\n",
-							pool->name, pool->nr_used, pool->nr_free);
+		if (pool->nr_used != 0) {
+			pr_warn_ratelimited("nos_mempool oom: %s, nr_used: %d, nr_free: %d\n",
+					pool->name, pool->nr_used, pool->nr_free);
+		}
 	}
 	spin_unlock_bh(&pool->lock);
 	return data;
