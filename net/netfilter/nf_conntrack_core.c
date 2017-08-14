@@ -925,7 +925,6 @@ init_conntrack(struct net *net, struct nf_conn *tmpl,
 	struct nf_conn_timeout *timeout_ext;
 	struct nf_conntrack_zone tmp;
 	unsigned int *timeouts;
-	struct nos_flow_tuple nos_flow_tuple;
 
 	if (!nf_ct_invert_tuple(&repl_tuple, tuple, l3proto, l4proto)) {
 		pr_debug("Can't invert tuple.\n");
@@ -950,20 +949,6 @@ init_conntrack(struct net *net, struct nf_conn *tmpl,
 			timeouts = l4proto->get_timeouts(net);
 	} else {
 		timeouts = l4proto->get_timeouts(net);
-	}
-
-	if ( !(ipv4_is_lbcast(tuple->src.u3.ip) || ipv4_is_lbcast(tuple->dst.u3.ip) ||
-			ipv4_is_loopback(tuple->src.u3.ip) || ipv4_is_loopback(tuple->dst.u3.ip) ||
-			ipv4_is_multicast(tuple->src.u3.ip) || ipv4_is_multicast(tuple->dst.u3.ip) ||
-			ipv4_is_zeronet(tuple->src.u3.ip) || ipv4_is_zeronet(tuple->dst.u3.ip)) )
-	{
-		/* roy: nos track init nodes */
-		nos_flow_tuple.ip_src = tuple->src.u3.ip;
-		nos_flow_tuple.ip_dst = tuple->dst.u3.ip;
-		nos_flow_tuple.port_src = tuple->src.u.all;
-		nos_flow_tuple.port_dst = tuple->dst.u.all;
-		nos_flow_tuple.proto = tuple->dst.protonum;
-		nos_track_alloc(&ct->nos_track, &nos_flow_tuple, skb);
 	}
 
 	if (!l4proto->new(ct, skb, dataoff, timeouts)) {
