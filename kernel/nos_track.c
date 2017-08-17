@@ -73,7 +73,16 @@ static void utrack_timeout_fn(unsigned long d)
 
 	user_id = ut - nos_user_tracks;
 	ui = nos_user_info_base + user_id;
-	if (time_after(jiffies, ui->hdr.time_stamp + nos_auth_no_flow_timeout * HZ)) {
+	//Fix me:span shouldn't be greater than ULONG_MAX
+	unsigned long cur_span = 0, span = nos_auth_no_flow_timeout * HZ;
+	if (unlikely(jiffies < ui->hdr.time_stamp)) {
+		cur_span = ULONG_MAX - ui->hdr.time_stamp + jiffies;
+	}
+	else {
+		cur_span = jiffies - ui->hdr.time_stamp;
+	}
+
+	if (cur_span > span) {
 		//timeout
 		nos_user_track_put(ut);
 	} else {
